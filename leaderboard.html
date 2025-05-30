@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leaderboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: #f5f5f5;
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+    }
+    h1 {
+      text-align: center;
+      color: #1e90ff;
+    }
+    .chart-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 3rem auto;
+      padding: 1rem;
+      border: 1px solid #444;
+      border-radius: 10px;
+      background-color: #1a1a1a;
+    }
+    .info {
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 14px;
+      color: #ccc;
+    }
+    .highlight {
+      color: #1e90ff;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Leaderboard</h1>
+  <div id="charts"></div>
+
+  <script>
+    function getVotes(name) {
+      const v = localStorage.getItem("votes_" + name);
+      return v ? parseInt(v) : 0;
+    }
+
+    function makeChart(role, candidates) {
+      const container = document.getElementById("charts");
+      const div = document.createElement("div");
+      div.className = "chart-container";
+
+      const labels = candidates.map(c => c.name);
+      const votes = candidates.map(c => getVotes(c.name));
+      const totalVotes = votes.reduce((sum, v) => sum + v, 0);
+
+      const canvas = document.createElement("canvas");
+      div.appendChild(canvas);
+
+      const info = document.createElement("div");
+      info.className = "info";
+      info.innerHTML = `
+        <div><span class="highlight">${role.replace(/_/g, ' ').toUpperCase()}</span></div>
+        <div>Total Votes: <span class="highlight">${totalVotes}</span></div>
+      `;
+      div.insertBefore(info, canvas);
+
+      const percentages = votes.map(v => totalVotes > 0 ? ((v / totalVotes) * 100).toFixed(1) : 0);
+
+      new Chart(canvas.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: labels.map((name, i) => `${name} (${votes[i]} votes, ${percentages[i]}%)`),
+          datasets: [{
+            label: role.replace(/_/g, ' ').toUpperCase(),
+            data: votes,
+            backgroundColor: 'rgba(30, 144, 255, 0.7)'
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          scales: {
+            x: { beginAtZero: true }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+
+      container.appendChild(div);
+    }
+
+    fetch("candidates.json")
+      .then(res => res.json())
+      .then(data => {
+        for (const house in data) {
+          for (const role in data[house]) {
+            makeChart(`${house.toUpperCase()} - ${role}`, data[house][role]);
+          }
+        }
+      });
+  </script>
+</body>
+</html>
