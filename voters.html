@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voter Status Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #0d0d0d;
+      color: #f0f0f0;
+      padding: 40px;
+    }
+    h1 {
+      color: #ff4747;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      max-width: 900px;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background-color: #1b1b1b;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #444;
+    }
+    th {
+      background-color: #ff4747;
+    }
+    tr:nth-child(even) {
+      background-color: #292929;
+    }
+    tr:hover {
+      background-color: #3a3a3a;
+    }
+    .voted {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    .not-voted {
+      color: #ff4c4c;
+      font-weight: bold;
+    }
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      background-color: #ff4747;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Voter Status Dashboard</h1>
+  <table id="voterTable">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Name</th>
+        <th>House</th>
+        <th>Status</th>
+        <th>Toggle</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const tableBody = document.querySelector('#voterTable tbody');
+    const localKey = 'voterStatus';
+
+    function getLocalStatus() {
+      return JSON.parse(localStorage.getItem(localKey) || '{}');
+    }
+
+    function saveLocalStatus(data) {
+      localStorage.setItem(localKey, JSON.stringify(data));
+    }
+
+    function renderVoters(voters) {
+      const statusMap = getLocalStatus();
+      tableBody.innerHTML = '';
+      voters.forEach(voter => {
+        if (voter.username === 'admin') return;
+
+        const username = voter.username;
+        const voted = statusMap[username] ?? voter.voted ?? false;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${voter.username}</td>
+          <td>${voter.realname || voter.name || 'Unknown'}</td>
+          <td>${voter.house}</td>
+          <td class="${voted ? 'voted' : 'not-voted'}">${voted ? 'Voted' : 'Not Voted'}</td>
+          <td><button onclick="toggleStatus('${username}')">update</button></td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function toggleStatus(username) {
+      const statusMap = getLocalStatus();
+      statusMap[username] = !statusMap[username];
+      saveLocalStatus(statusMap);
+      loadVoters();
+    }
+
+    function loadVoters() {
+      fetch('voters.json')
+        .then(res => res.json())
+        .then(data => renderVoters(data))
+        .catch(err => {
+          console.error('Error loading voters.json:', err);
+          tableBody.innerHTML = '<tr><td colspan="5">Failed to load voter data.</td></tr>';
+        });
+    }
+
+    loadVoters();
+  </script>
+</body>
+</html>
